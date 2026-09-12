@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CÁTODO DIAG — Capacidades &amp; Límites</title>
+<style>
+/* ============================================================
+   SISTEMA CÁTODO — kit CRT (pegado completo)
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Silkscreen:wght@400;700&display=swap');
+
+:root{
+  --px: 8px;
+  --scan-op: .28;
+  --scan-pitch: 4px;
+}
+
+*{ box-sizing: border-box; }
+
+img, canvas, svg, video{
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+body{
+  margin: 0;
+  background: #000;
+  font-family: 'VT323', monospace;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+  text-rendering: geometricPrecision;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg, #33FF66);
+}
+
+.crt{
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px / 16px;
+  box-shadow:
+    inset 0 0 60px 20px rgba(0,0,0,.55),
+    inset 0 0 140px 60px rgba(0,0,0,.35);
+  animation: crt-flicker 7s infinite steps(1);
+}
+
+.crt::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 90;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,var(--scan-op)) 0 calc(var(--scan-pitch) / 2),
+    transparent calc(var(--scan-pitch) / 2) var(--scan-pitch)
+  );
+  mix-blend-mode: multiply;
+}
+
+.crt::before{
+  content: "";
+  position: absolute;
+  left: 0; right: 0;
+  height: 120px;
+  pointer-events: none;
+  z-index: 91;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(255,255,255,.045),
+    transparent
+  );
+  animation: crt-roll 9s linear infinite;
+}
+
+@keyframes crt-roll{
+  0%   { top: -120px; }
+  100% { top: 100%; }
+}
+
+@keyframes crt-flicker{
+  0%, 90%, 100% { opacity: 1; }
+  92%           { opacity: .96; }
+  94%           { opacity: 1; }
+  96%           { opacity: .93; }
+}
+
+.chroma{
+  text-shadow:
+    -1px 0 rgba(255,0,80,.65),
+     1px 0 rgba(0,255,255,.65);
+}
+
+.chroma-box{
+  box-shadow:
+    -1px 0 0 rgba(255,0,80,.5),
+     1px 0 0 rgba(0,255,255,.5);
+}
+
+.glow{ filter: drop-shadow(0 0 6px currentColor); }
+.glow-hard{
+  filter:
+    drop-shadow(0 0 4px currentColor)
+    drop-shadow(0 0 12px currentColor);
+}
+
+.t-title{
+  font-family: 'Press Start 2P', monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  line-height: 1.6;
+}
+.t-body{ font-family: 'VT323', monospace; font-size: 20px; line-height: 1.3; }
+.t-label{ font-family: 'Silkscreen', monospace; font-size: 12px; text-transform: uppercase; }
+
+.panel{
+  border: var(--px) solid currentColor;
+  box-shadow: var(--px) var(--px) 0 #000;
+  border-radius: 0;
+  padding: calc(var(--px) * 2);
+}
+
+.dither-50{
+  background-image:
+    linear-gradient(45deg, var(--c2) 25%, transparent 25%, transparent 75%, var(--c2) 75%),
+    linear-gradient(45deg, var(--c2) 25%, transparent 25%, transparent 75%, var(--c2) 75%);
+  background-color: var(--c1);
+  background-size: calc(var(--px) * 2) calc(var(--px) * 2);
+  background-position: 0 0, var(--px) var(--px);
+}
+
+.pal-fosforo{ --bg:#050805; --fg:#33FF66; --dim:#0A3A18; --hi:#B9FFD0; }
+.pal-ambar  { --bg:#0D0700; --fg:#FFB000; --dim:#4A2F00; --hi:#FFE0A0; }
+.pal-arcade { --bg:#000000; --c1:#FCFCFC; --c2:#F83800; --c3:#FFA044; --c4:#B8F818; --c5:#3CBCFC; --c6:#6844FC; --fg:#FCFCFC; --dim:#3CBCFC; --hi:#B8F818; }
+.pal-synth  { --bg:#16002E; --sky:#2D0B4E; --mag:#FF2A6D; --cya:#05D9E8; --vio:#7B2FF7; --grid:#D400FF; --sun1:#FF9E3D; --sun2:#FFE66D; --fg:#05D9E8; --dim:#7B2FF7; --hi:#FF2A6D; }
+.pal-hw     { --pcb:#0F3D2E; --cu:#C9A227; --si:#6E7B84; --sold:#D9D9D9; --sh:#1A1A1A; --bg:#0F3D2E; --fg:#C9A227; --dim:#6E7B84; --hi:#D9D9D9; }
+
+.grid-synth{
+  position: absolute;
+  bottom: 0; left: -50%;
+  width: 200%; height: 45%;
+  background-image:
+    repeating-linear-gradient(to right, var(--grid) 0 2px, transparent 2px 80px),
+    repeating-linear-gradient(to bottom, var(--grid) 0 2px, transparent 2px 60px);
+  transform: perspective(260px) rotateX(68deg);
+  transform-origin: bottom center;
+  animation: grid-run 1.2s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes grid-run{
+  from{ background-position-y: 0, 0; }
+  to  { background-position-y: 0, 60px; }
+}
+
+.sprite{
+  width: calc(var(--px) * 4);
+  height: calc(var(--px) * 4);
+  background-repeat: no-repeat;
+  animation: sprite-walk .5s steps(4) infinite;
+}
+
+@keyframes sprite-walk{
+  from{ background-position-x: 0; }
+  to  { background-position-x: calc(var(--px) * -16); }
+}
+
+/* ============================================================
+   APP DEMO
+   ============================================================ */
+
+#app{
+  width: min(960px, 100vw);
+  height: min(640px, 100vh);
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.screen{
+  display: none;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  padding: calc(var(--px) * 3);
+}
+
+.screen.active{ display: flex; flex-direction: column; }
+
+/* --- BOOT / COIN --- */
+#screen-coin{
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: calc(var(--px) * 3);
+  cursor: pointer;
+}
+
+.coin-slot{
+  width: calc(var(--px) * 10);
+  height: calc(var(--px) * 14);
+  border: calc(var(--px) / 1) solid var(--fg);
+  box-shadow: var(--px) var(--px) 0 #000;
+  position: relative;
+  background: var(--dim);
+}
+
+.coin-slot::before{
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: calc(var(--px) * 2);
+  transform: translateX(-50%);
+  width: calc(var(--px) * 2);
+  height: calc(var(--px) * 10);
+  background: #000;
+  border: 2px solid var(--hi);
+}
+
+.coin{
+  width: calc(var(--px) * 4);
+  height: calc(var(--px) * 4);
+  border: 2px solid var(--hi);
+  background: var(--fg);
+  position: absolute;
+  left: 50%;
+  top: -40px;
+  transform: translateX(-50%);
+  opacity: 0;
+  z-index: 2;
+}
+
+.coin.inserting{
+  animation: coin-drop .8s steps(8) forwards;
+}
+
+@keyframes coin-drop{
+  0%   { top: -40px; opacity: 1; }
+  70%  { top: 48px; opacity: 1; }
+  100% { top: 80px; opacity: 0; }
+}
+
+.blink{
+  animation: blink 1s steps(1) infinite;
+}
+@keyframes blink{
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* --- HARDWARE --- */
+#screen-hw{
+  background: var(--pcb);
+  color: var(--cu);
+  align-items: stretch;
+  justify-content: center;
+  gap: calc(var(--px) * 2);
+}
+
+.pcb-grid{
+  flex: 1;
+  position: relative;
+  border: 2px solid var(--cu);
+  background:
+    repeating-linear-gradient(to right, transparent 0 22px, var(--cu) 22px 24px),
+    repeating-linear-gradient(to bottom, transparent 0 22px, rgba(201,162,39,.35) 22px 24px);
+  overflow: hidden;
+}
+
+.chip{
+  position: absolute;
+  background: var(--si);
+  border: 2px solid var(--sold);
+  box-shadow: 4px 4px 0 var(--sh);
+  color: var(--sh);
+  font-family: 'Silkscreen', monospace;
+  font-size: 10px;
+  padding: 8px;
+  text-align: center;
+}
+
+.probe{
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: var(--cu);
+  box-shadow: 0 0 0 2px var(--sold);
+  animation: probe-run 2.4s steps(12) forwards;
+}
+
+@keyframes probe-run{
+  0%   { left: 8px;  top: 80%; }
+  25%  { left: 30%; top: 60%; }
+  50%  { left: 55%; top: 35%; }
+  75%  { left: 72%; top: 20%; }
+  100% { left: 90%; top: 8%;  }
+}
+
+/* --- HUB --- */
+#screen-hub{
+  padding: 0;
+}
+
+.hub-layout{
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  height: 100%;
+}
+
+.nav{
+  border-right: var(--px) solid var(--fg);
+  background: var(--dim);
+  padding: calc(var(--px) * 2);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--px));
+}
+
+.nav .brand{
+  margin-bottom: calc(var(--px) * 2);
+  font-size: 10px;
+  color: var(--hi);
+}
+
+.nav button{
+  all: unset;
+  cursor: pointer;
+  font-family: 'Silkscreen', monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+  padding: 8px;
+  border: 2px solid transparent;
+  color: var(--fg);
+}
+
+.nav button:hover,
+.nav button.active{
+  border-color: var(--fg);
+  background: #000;
+  box-shadow: 4px 4px 0 #000;
+}
+
+.nav button.danger{ color: var(--hi); text-decoration: underline; }
+.nav .hint{
+  margin-top: auto;
+  font-size: 14px;
+  color: var(--hi);
+  opacity: .8;
+}
+
+.main{
+  padding: calc(var(--px) * 2);
+  overflow: auto;
+  position: relative;
+}
+
+.pane{ display: none; }
+.pane.active{ display: block; }
+
+h1{
+  font-family: 'Press Start 2P', monospace;
+  font-size: 16px;
+  letter-spacing: .08em;
+  margin: 0 0 16px;
+  text-transform: uppercase;
+}
+
+h2{
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  margin: 24px 0 12px;
+  color: var(--hi);
+}
+
+.grid-cards{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.card{
+  border: 2px solid var(--fg);
+  box-shadow: 8px 8px 0 #000;
+  padding: 16px;
+  background: #000;
+  cursor: pointer;
+  transition: none;
+}
+
+.card:hover{
+  background: var(--dim);
+}
+
+.card .tag{
+  font-family: 'Silkscreen', monospace;
+  font-size: 10px;
+  color: var(--hi);
+  margin-bottom: 8px;
+}
+
+.card h3{
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+
+.card p{
+  margin: 0;
+  font-size: 18px;
+  color: var(--fg);
+  opacity: .9;
+}
+
+.status-bar{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 2px solid var(--dim);
+  padding: 8px 16px;
+  font-family: 'Silkscreen', monospace;
+  font-size: 10px;
+  background: #000;
+}
+
+.dot{
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--fg);
+  margin-right: 8px;
+  animation: blink 1.2s steps(1) infinite;
+}
+
+/* --- LIMITS --- */
+.limit-list{
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.limit-list li{
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 12px;
+  align-items: start;
+  border: 2px solid var(--dim);
+  padding: 12px;
+  background: #000;
+}
+
+.limit-list .badge{
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: var(--hi);
+  border: 2px solid var(--hi);
+  padding: 8px 4px;
+  text-align: center;
+  box-shadow: 4px 4px 0 #000;
+}
+
+.limit-list .ok-badge{
+  color: var(--fg);
+  border-color: var(--fg);
+}
+
+.limit-list strong{
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* --- PLAYGROUND --- */
+.play-row{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.stage{
+  height: 160px;
+  border: 2px solid var(--fg);
+  box-shadow: 8px 8px 0 #000;
+  position: relative;
+  overflow: hidden;
+  background: #000;
+}
+
+.stage.synth-stage{
+  background: linear-gradient(to bottom, #2D0B4E 0 55%, #16002E 55%);
+}
+
+/* fake "gradient" broken notice uses dither only */
+.sun{
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 72px;
+  height: 36px;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      #FFE66D 0 8px,
+      #FF9E3D 8px 16px
+    );
+  border-radius: 72px 72px 0 0;
+  overflow: hidden;
+}
+
+.hero{
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  width: 32px;
+  height: 32px;
+  background:
+    linear-gradient(#33FF66 0 8px, transparent 8px) 8px 0 / 16px 8px no-repeat,
+    linear-gradient(#33FF66 0 16px, transparent 16px) 4px 8px / 24px 16px no-repeat,
+    linear-gradient(#0A3A18 0 8px, transparent 8px) 0 24px / 8px 8px no-repeat,
+    linear-gradient(#0A3A18 0 8px, transparent 8px) 24px 24px / 8px 8px no-repeat,
+    linear-gradient(#B9FFD0 0 8px, transparent 8px) 12px 12px / 8px 8px no-repeat;
+  animation: hero-bob .4s steps(2) infinite;
+}
+
+@keyframes hero-bob{
+  from{ transform: translateY(0); }
+  to  { transform: translateY(-8px); }
+}
+
+.stars span{
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: var(--hi);
+  animation: star-tw 1.6s steps(2) infinite;
+}
+@keyframes star-tw{
+  0%,49%{ opacity: 1; }
+  50%,100%{ opacity: .2; }
+}
+
+.controls{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.btn{
+  all: unset;
+  cursor: pointer;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  padding: 12px;
+  border: 2px solid var(--fg);
+  box-shadow: 4px 4px 0 #000;
+  background: #000;
+  color: var(--fg);
+  text-transform: uppercase;
+}
+
+.btn:hover{ background: var(--dim); }
+.btn:active{ transform: translate(4px, 4px); box-shadow: 0 0 0 #000; }
+.btn.on{ background: var(--fg); color: #000; }
+
+.term{
+  border: 2px solid var(--fg);
+  background: #000;
+  padding: 12px;
+  min-height: 120px;
+  font-size: 18px;
+  white-space: pre-wrap;
+}
+
+.cursor-block::after{
+  content: "█";
+  animation: blink .8s steps(1) infinite;
+  margin-left: 2px;
+}
+
+.meter{
+  height: 16px;
+  border: 2px solid var(--fg);
+  background: #000;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  margin-top: 8px;
+}
+
+.meter i{
+  flex: 1;
+  background: var(--dim);
+  display: block;
+}
+.meter i.on{ background: var(--fg); box-shadow: 0 0 6px var(--fg); }
+
+.kbd{
+  font-family: 'Silkscreen', monospace;
+  font-size: 10px;
+  border: 2px solid var(--dim);
+  padding: 4px 8px;
+  display: inline-block;
+  margin: 2px;
+}
+
+.compare{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.bad{
+  border-color: var(--hi) !important;
+  color: var(--hi);
+  opacity: .85;
+}
+
+.good{
+  border-color: var(--fg);
+}
+
+.swatch-row{
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.swatch{
+  width: 24px;
+  height: 24px;
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0 #000;
+}
+
+.hidden{ display: none !important; }
+
+@media (max-width: 720px){
+  .hub-layout{ grid-template-columns: 1fr; }
+  .nav{ flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: var(--px) solid var(--fg); }
+  .grid-cards, .play-row, .compare{ grid-template-columns: 1fr; }
+  #app{ height: auto; min-height: 100vh; border-radius: 0; }
+}
+</style>
+</head>
+<body>
+<div id="app" class="crt pal-fosforo">
+
+  <!-- 1. OBJETO FÍSICO -->
+  <section id="screen-coin" class="screen active" role="button" tabindex="0" aria-label="Insertar moneda">
+    <div class="t-label" style="opacity:.7">SISTEMA CATHODE v1.0</div>
+    <h1 class="t-title chroma glow" style="font-size:20px;margin:0">CÁTODO DIAG</h1>
+    <p class="t-body" style="max-width:420px;margin:0">
+      Demo interactiva de capacidades de código<br>
+      y límites duros del Sistema Cátodo.
+    </p>
+    <div class="coin-slot chroma-box" aria-hidden="true">
+      <div class="coin" id="coin"></div>
+    </div>
+    <p class="t-title blink chroma" style="font-size:12px;margin:0">INSERT COIN</p>
+    <p class="t-label" style="opacity:.6">CLICK / ENTER / ESPACIO</p>
+  </section>
+
+  <!-- 2. HARDWARE -->
+  <section id="screen-hw" class="screen pal-hw">
+    <div class="t-label" style="color:var(--sold)">PASANDO POR HARDWARE…</div>
+    <div class="pcb-grid" id="pcb">
+      <div class="chip" style="left:40px;top:40px;width:80px">CPU<br>6502</div>
+      <div class="chip" style="left:180px;top:100px;width:96px">VRAM<br>16KB</div>
+      <div class="chip" style="left:360px;top:48px;width:72px">CRT<br>I/O</div>
+      <div class="chip" style="left:520px;top:120px;width:88px">PAL<br>LUT</div>
+      <div class="probe" id="probe"></div>
+    </div>
+    <div class="t-body" id="hw-log" style="color:var(--sold)">trazando pistas de cobre…</div>
+  </section>
+
+  <!-- 3. HUB -->
+  <section id="screen-hub" class="screen">
+    <div class="hub-layout">
+      <aside class="nav">
+        <div class="brand t-label">
+          <span class="dot"></span>DIAG ONLINE
+        </div>
+        <button type="button" class="active" data-pane="cap">01 Capacidades</button>
+        <button type="button" data-pane="lim">02 Límites</button>
+        <button type="button" data-pane="play">03 Playground</button>
+        <button type="button" data-pane="code">04 Stack</button>
+        <button type="button" class="danger" data-pane="out">05 Fuera de scope</button>
+        <p class="hint t-body">Flechas / tabs<br>o click</p>
+      </aside>
+
+      <div class="main">
+        <!-- CAPACIDADES -->
+        <div class="pane active" id="pane-cap">
+          <h1 class="chroma">Capacidades</h1>
+          <p class="t-body" style="margin:0 0 16px;opacity:.85">
+            Lo que este bot escribe bien: HTML autocontenido, CSS pixel, animación cuantizada, HUDs y mini-mundos arcade.
+          </p>
+          <div class="grid-cards">
+            <article class="card" data-term="CRT kit pegado: scanlines + viñeta + flicker steps(1) + aberración ±1px.">
+              <div class="tag">CAP_01</div>
+              <h3>Capa CRT</h3>
+              <p>Scanlines, curvatura, viñeta, fósforo y chroma — kit obligatorio, no reescrito.</p>
+            </article>
+            <article class="card" data-term="Unidad --px:8. Toda medida = múltiplo. image-rendering:pixelated.">
+              <div class="tag">CAP_02</div>
+              <h3>Grilla 8/16 bits</h3>
+              <p>Una unidad de píxel por pieza. Cajas con sombra dura, cero blur.</p>
+            </article>
+            <article class="card" data-term="Paletas: Fósforo · Ámbar · Arcade · Synth · Naturaleza · Hardware. Max 16 colores/escena.">
+              <div class="tag">CAP_03</div>
+              <h3>Paletas por escena</h3>
+              <p>Una sola LUT activa. Cambio de mundo = cambio de paleta, no mezcla.</p>
+            </article>
+            <article class="card" data-term="animation-timing-function: steps(n). 8–12 fps. Cero ease-in-out.">
+              <div class="tag">CAP_04</div>
+              <h3>Movimiento steps()</h3>
+              <p>Sprites, scrolls y blinks cuantizados como retícula 1/16.</p>
+            </article>
+            <article class="card" data-term="Secuencia: objeto físico → PCB/hardware → mundos virtuales → cierre CRT.">
+              <div class="tag">CAP_05</div>
+              <h3>Arco narrativo</h3>
+              <p>Moneda → circuito → simulador / synth / plataformas.</p>
+            </article>
+            <article class="card" data-term="Press Start 2P · VT323 · Silkscreen. Mayúsculas en rótulos. Sin antialias.">
+              <div class="tag">CAP_06</div>
+              <h3>Tipografía bitmap</h3>
+              <p>Títulos, terminal y etiquetas de nivel. Google Fonts embebidas.</p>
+            </article>
+          </div>
+          <h2>LOG</h2>
+          <div class="term cursor-block" id="cap-term">Seleccioná una tarjeta…</div>
+        </div>
+
+        <!-- LÍMITES -->
+        <div class="pane" id="pane-lim">
+          <h1 class="chroma" style="color:var(--hi)">Límites duros</h1>
+          <p class="t-body" style="margin:0 0 16px">
+            Reglas que expulsan la pieza del sistema — y límites operativos del bot.
+          </p>
+          <ul class="limit-list">
+            <li>
+              <span class="badge">KILL</span>
+              <div>
+                <strong>Sin degradados suaves</strong>
+                <span class="t-body">Transiciones solo con dithering (25/50/75% o tablero).</span>
+              </div>
+            </li>
+            <li>
+              <span class="badge">KILL</span>
+              <div>
+                <strong>Sin blur / sombras blandas</strong>
+                <span class="t-body">Solo <span class="kbd">box-shadow: Npx Npx 0 #000</span> o glow de fósforo permitido.</span>
+              </div>
+            </li>
+            <li>
+              <span class="badge">KILL</span>
+              <div>
+                <strong>Max 16 colores / escena</strong>
+                <span class="t-body">Contando el negro. Una paleta; no mezclar Arcade con Synth en el mismo plano.</span>
+              </div>
+            </li>
+            <li>
+              <span class="badge">KILL</span>
+              <div>
+                <strong>Sin easing continuo</strong>
+                <span class="t-body">Toda animación con <span class="kbd">steps()</span>. Cero ease-in-out.</span>
+              </div>
+            </li>
+            <li>
+              <span class="badge">KILL</span>
+              <div>
+                <strong>Sin emojis / flat icons</strong>
+                <span class="t-body">Ni íconos vectoriales contemporáneos ni antialiasing en sprites.</span>
+              </div>
+            </li>
+            <li>
+              <span class="badge">OPS</span>
+              <div>
+                <strong>No publico / no subo</strong>
+                <span class="t-body">Borradores locales o chat. Drive, merge y permisos solo con OK explícito de Franco.</span>
+              </div>
+            </li>
+            <li>
+              <span class="badge">OPS</span>
+              <div>
+                <strong>No mezclar design systems</strong>
+                <span class="t-body">Fuera: Ace DS, Brut DS, Serie H, Jaula/Panóptico, Pergamino, Fundador.</span>
+              </div>
+            </li>
+            <li>
+              <span class="badge">OPS</span>
+              <div>
+                <strong>Piezas cortas</strong>
+                <span class="t-body">Portadas, intros, tableros, minijuegos. No textos curriculares largos.</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- PLAYGROUND -->
+        <div class="pane" id="pane-play">
+          <h1 class="chroma">Playground</h1>
+          <p class="t-body" style="margin:0 0 12px">Probá en vivo lo que el sistema sí hace.</p>
+
+          <div class="controls" id="pal-controls">
+            <button type="button" class="btn on" data-pal="fosforo">Fósforo</button>
+            <button type="button" class="btn" data-pal="ambar">Ámbar</button>
+            <button type="button" class="btn" data-pal="arcade">Arcade</button>
+            <button type="button" class="btn" data-pal="synth">Synth</button>
+            <button type="button" class="btn" id="btn-crt">CRT ON</button>
+            <button type="button" class="btn" id="btn-score">+100 PTS</button>
+          </div>
+
+          <div class="play-row">
+            <div class="stage" id="stage-sim">
+              <div class="stars" id="stars"></div>
+              <div class="hero" id="hero" title="sprite steps()"></div>
+              <div class="t-label" style="position:absolute;top:8px;left:8px">SIM // FPV</div>
+              <div class="t-title" style="position:absolute;bottom:8px;right:8px;font-size:10px" id="score">SCORE 000000</div>
+            </div>
+            <div class="stage synth-stage" id="stage-synth">
+              <div class="sun" aria-hidden="true"></div>
+              <div class="grid-synth" id="neon-grid"></div>
+              <div class="t-label" style="position:absolute;top:8px;left:8px;color:#05D9E8">NEON GRID</div>
+              <div class="t-title" style="position:absolute;top:8px;right:8px;font-size:8px;color:#FF2A6D" id="spd">088 KM/H</div>
+            </div>
+          </div>
+
+          <div class="compare">
+            <div class="panel good">
+              <div class="t-label">OK — DITHER 50%</div>
+              <div class="dither-50" style="--c1:#0A3A18;--c2:#33FF66;height:48px;margin-top:8px"></div>
+              <p class="t-body" style="margin:8px 0 0">Transición con trama, no con gradient CSS.</p>
+            </div>
+            <div class="panel bad">
+              <div class="t-label">KILL — SOFT GRADIENT</div>
+              <div style="height:48px;margin-top:8px;background:linear-gradient(90deg,#0A3A18,#33FF66);opacity:.35;position:relative">
+                <div class="t-title" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--hi);background:rgba(0,0,0,.55)">BLOQUEADO</div>
+              </div>
+              <p class="t-body" style="margin:8px 0 0">Mostrado tachado a propósito: no entra al sistema.</p>
+            </div>
+          </div>
+
+          <h2>ENERGÍA CRT</h2>
+          <div class="meter" id="meter" aria-label="nivel de fósforo">
+            <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i>
+            <i class="on"></i><i class="on"></i><i></i><i></i>
+          </div>
+        </div>
+
+        <!-- STACK -->
+        <div class="pane" id="pane-code">
+          <h1 class="chroma">Stack de entrega</h1>
+          <p class="t-body">Checklist que corro antes de cerrar una pieza:</p>
+          <ul class="limit-list" id="checklist">
+            <li><span class="badge ok-badge">OK</span><div><strong>Múltiplos de --px</strong><span class="t-body">posición, tamaño, gap.</span></div></li>
+            <li><span class="badge ok-badge">OK</span><div><strong>CRT 100%</strong><span class="t-body">scanlines + viñeta + curvatura.</span></div></li>
+            <li><span class="badge ok-badge">OK</span><div><strong>1 paleta ≤16</strong><span class="t-body">esta escena hub = Fósforo (4 + negro).</span></div></li>
+            <li><span class="badge ok-badge">OK</span><div><strong>steps() only</strong><span class="t-body">flicker, blink, sprite, probe, coin.</span></div></li>
+            <li><span class="badge ok-badge">OK</span><div><strong>Secuencia 1→2→mundos</strong><span class="t-body">moneda → PCB → hub.</span></div></li>
+            <li><span class="badge ok-badge">OK</span><div><strong>HTML autocontenido</strong><span class="t-body">Google Fonts + kit CRT embebidos.</span></div></li>
+          </ul>
+          <h2>PALETA ACTIVA</h2>
+          <div class="swatch-row" id="swatches">
+            <div class="swatch" style="background:#050805" title="#050805"></div>
+            <div class="swatch" style="background:#33FF66" title="#33FF66"></div>
+            <div class="swatch" style="background:#0A3A18" title="#0A3A18"></div>
+            <div class="swatch" style="background:#B9FFD0" title="#B9FFD0"></div>
+          </div>
+          <p class="t-label" style="margin-top:12px;opacity:.7">UNIDAD: 8px · FUENTES: Press Start 2P / VT323 / Silkscreen</p>
+        </div>
+
+        <!-- FUERA DE SCOPE -->
+        <div class="pane" id="pane-out">
+          <h1 style="color:var(--hi)">Fuera de scope</h1>
+          <p class="t-body">Pedidos que derivo o rechazo (no son Cátodo):</p>
+          <div class="grid-cards">
+            <article class="card" style="cursor:default">
+              <div class="tag">→ PERGAMINO</div>
+              <h3>Material curricular largo</h3>
+              <p>Planificaciones, imprimibles, textos densos.</p>
+            </article>
+            <article class="card" style="cursor:default">
+              <div class="tag">→ FUNDADOR</div>
+              <h3>Institucional familias</h3>
+              <p>Piezas oficiales El Fundador.</p>
+            </article>
+            <article class="card" style="cursor:default">
+              <div class="tag">→ OTRO DS</div>
+              <h3>Ace / Brut / Serie H / Jaula</h3>
+              <p>Otros design systems del equipo; no se mezclan.</p>
+            </article>
+            <article class="card" style="cursor:default">
+              <div class="tag">→ FRANCO</div>
+              <h3>Publicar / Drive / merge</h3>
+              <p>Sin OK explícito: solo borrador local o chat.</p>
+            </article>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer class="status-bar">
+      <span id="status-left">READY</span>
+      <span id="status-mid">ESCENA: HUB · PAL: FÓSFORO</span>
+      <span id="clock">00:00</span>
+    </footer>
+  </section>
+</div>
+
+<script>
+(function () {
+  const app = document.getElementById('app');
+  const screens = {
+    coin: document.getElementById('screen-coin'),
+    hw: document.getElementById('screen-hw'),
+    hub: document.getElementById('screen-hub')
+  };
+  let score = 0;
+  let spd = 88;
+  let crtOn = true;
+  let booted = false;
+
+  const pals = {
+    fosforo: { cls: 'pal-fosforo', sw: ['#050805','#33FF66','#0A3A18','#B9FFD0'], name: 'FÓSFORO' },
+    ambar:   { cls: 'pal-ambar',   sw: ['#0D0700','#FFB000','#4A2F00','#FFE0A0'], name: 'ÁMBAR' },
+    arcade:  { cls: 'pal-arcade',  sw: ['#000000','#FCFCFC','#F83800','#FFA044','#B8F818','#3CBCFC','#6844FC'], name: 'ARCADE' },
+    synth:   { cls: 'pal-synth',   sw: ['#16002E','#2D0B4E','#FF2A6D','#05D9E8','#7B2FF7','#D400FF','#FF9E3D','#FFE66D'], name: 'SYNTH' }
+  };
+
+  function showScreen(id) {
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    screens[id].classList.add('active');
+  }
+
+  function boot() {
+    if (booted) return;
+    booted = true;
+    const coin = document.getElementById('coin');
+    coin.classList.add('inserting');
+    setTimeout(() => {
+      showScreen('hw');
+      app.className = 'crt pal-hw';
+      const log = document.getElementById('hw-log');
+      const lines = [
+        'trazando pistas de cobre…',
+        'leyendo LUT de paleta…',
+        'sincronizando barrido CRT…',
+        'handoff → mundo virtual'
+      ];
+      let i = 0;
+      const t = setInterval(() => {
+        i++;
+        if (i < lines.length) log.textContent = lines[i];
+        else {
+          clearInterval(t);
+          setTimeout(() => {
+            app.className = 'crt pal-fosforo';
+            showScreen('hub');
+            setStatus('HUB ONLINE', 'ESCENA: HUB · PAL: FÓSFORO');
+          }, 400);
+        }
+      }, 500);
+    }, 850);
+  }
+
+  screens.coin.addEventListener('click', boot);
+  screens.coin.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); boot(); }
+  });
+
+  // Nav panes
+  const navBtns = document.querySelectorAll('.nav button[data-pane]');
+  const panes = document.querySelectorAll('.pane');
+  function goPane(id) {
+    navBtns.forEach(b => b.classList.toggle('active', b.dataset.pane === id));
+    panes.forEach(p => p.classList.toggle('active', p.id === 'pane-' + id));
+    setStatus('PANE ' + id.toUpperCase(), null);
+  }
+  navBtns.forEach(b => b.addEventListener('click', () => goPane(b.dataset.pane)));
+
+  // Capability cards → terminal
+  const term = document.getElementById('cap-term');
+  document.querySelectorAll('#pane-cap .card').forEach(card => {
+    card.addEventListener('click', () => {
+      term.textContent = '';
+      typewrite(term, '> ' + card.dataset.term);
+    });
+  });
+
+  function typewrite(el, text) {
+    let i = 0;
+    el.classList.add('cursor-block');
+    const iv = setInterval(() => {
+      el.textContent = text.slice(0, i);
+      i++;
+      if (i > text.length) clearInterval(iv);
+    }, 18);
+  }
+
+  // Stars
+  const stars = document.getElementById('stars');
+  for (let i = 0; i < 28; i++) {
+    const s = document.createElement('span');
+    s.style.left = (8 + (i * 37) % 280) + 'px';
+    s.style.top = (8 + (i * 53) % 100) + 'px';
+    s.style.animationDelay = ((i % 5) * 0.2) + 's';
+    stars.appendChild(s);
+  }
+
+  // Palette switch (playground) — one palette on app shell
+  document.querySelectorAll('#pal-controls [data-pal]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#pal-controls [data-pal]').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      const p = pals[btn.dataset.pal];
+      app.className = (crtOn ? 'crt ' : '') + p.cls;
+      const row = document.getElementById('swatches');
+      row.innerHTML = p.sw.map(c => '<div class="swatch" style="background:'+c+'" title="'+c+'"></div>').join('');
+      setStatus('PAL SWAP', 'ESCENA: HUB · PAL: ' + p.name);
+    });
+  });
+
+  document.getElementById('btn-crt').addEventListener('click', function () {
+    crtOn = !crtOn;
+    this.textContent = crtOn ? 'CRT ON' : 'CRT OFF';
+    this.classList.toggle('on', crtOn);
+    const keep = [...app.classList].filter(c => c.startsWith('pal-')).join(' ') || 'pal-fosforo';
+    app.className = (crtOn ? 'crt ' : '') + keep;
+  });
+
+  document.getElementById('btn-score').addEventListener('click', () => {
+    score = Math.min(999999, score + 100);
+    document.getElementById('score').textContent = 'SCORE ' + String(score).padStart(6, '0');
+    spd = Math.min(240, spd + 8);
+    document.getElementById('spd').textContent = String(spd).padStart(3, '0') + ' KM/H';
+    const bars = document.querySelectorAll('#meter i');
+    const n = Math.min(bars.length, 4 + Math.floor(score / 200));
+    bars.forEach((b, i) => b.classList.toggle('on', i < n));
+  });
+
+  function setStatus(left, mid) {
+    if (left) document.getElementById('status-left').textContent = left;
+    if (mid) document.getElementById('status-mid').textContent = mid;
+  }
+
+  // Clock
+  const t0 = Date.now();
+  setInterval(() => {
+    const s = Math.floor((Date.now() - t0) / 1000);
+    const mm = String(Math.floor(s / 60)).padStart(2, '0');
+    const ss = String(s % 60).padStart(2, '0');
+    document.getElementById('clock').textContent = mm + ':' + ss;
+  }, 1000);
+
+  // Keyboard nav in hub
+  const order = ['cap', 'lim', 'play', 'code', 'out'];
+  document.addEventListener('keydown', (e) => {
+    if (!screens.hub.classList.contains('active')) return;
+    const cur = document.querySelector('.nav button.active');
+    let idx = order.indexOf(cur && cur.dataset.pane);
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      goPane(order[(idx + 1) % order.length]);
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      goPane(order[(idx - 1 + order.length) % order.length]);
+    } else if (e.key >= '1' && e.key <= '5') {
+      goPane(order[Number(e.key) - 1]);
+    }
+  });
+})();
+</script>
+</body>
+</html>
